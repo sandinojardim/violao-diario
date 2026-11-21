@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F7A74">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Violão Diário">
+<title>Violão Diário</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F6F5; --surface:#FFFFFF; --ink:#1C2230; --muted:#5D6677; --line:#D9DEE3;
+  --accent:#1F7A74; --accent-soft:#DCEFEC; --on-accent:#FFFFFF; --brass:#A87A22;
+  --heat0:#E6EAEC; --heat1:#B9DDD8; --heat2:#6FB8AE; --heat3:#1F7A74;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#11151D; --surface:#1A202B; --ink:#E7EAEF; --muted:#9AA3B3; --line:#2C3443;
+    --accent:#4FB3AA; --accent-soft:#1B3533; --on-accent:#0D1A19; --brass:#D9AC52;
+    --heat0:#222A36; --heat1:#1F4643; --heat2:#2F7E77; --heat3:#4FB3AA;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11151D; --surface:#1A202B; --ink:#E7EAEF; --muted:#9AA3B3; --line:#2C3443;
+  --accent:#4FB3AA; --accent-soft:#1B3533; --on-accent:#0D1A19; --brass:#D9AC52;
+  --heat0:#222A36; --heat1:#1F4643; --heat2:#2F7E77; --heat3:#4FB3AA;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 "Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:640px;margin:0 auto;padding:20px 18px 110px}
+h1,h2,h3{font-family:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;font-weight:700;letter-spacing:-.01em;margin:0}
+h1{font-size:2rem;line-height:1.1}
+h2{font-size:1.3rem;line-height:1.2}
+h3{font-size:1.05rem}
+p{margin:.4em 0}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4em;min-height:46px;padding:0 20px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-weight:700}
+.btn.ghost{background:transparent;color:var(--accent);border:2px solid var(--accent)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn.wide{width:100%}
+
+/* Cabeçalho do dia */
+.day{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:6px}
+.date{font-size:.95rem;color:var(--muted);text-transform:capitalize}
+.streak{text-align:right;line-height:1}
+.streak b{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:2.4rem;color:var(--brass);display:block}
+.streak span{font-size:.8rem;color:var(--muted)}
+.lesson-name{margin:2px 0 4px}
+
+/* Braço de acordes: o elemento marcante */
+.board{display:flex;gap:10px;overflow-x:auto;padding:14px 4px 8px;margin:12px -4px 4px;scroll-snap-type:x mandatory}
+.board figure{margin:0;flex:0 0 auto;scroll-snap-align:start;text-align:center}
+.board figcaption{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:700;font-size:1.25rem;margin-top:2px}
+svg.chord{width:118px;height:auto;display:block}
+svg.chord.sm{width:64px}
+.chord .nut{stroke:var(--ink);stroke-width:5}
+.chord .fret{stroke:var(--line);stroke-width:2}
+.chord .str{stroke:var(--muted)}
+.chord .dot{fill:var(--accent)}
+.chord .root{fill:var(--brass)}
+.chord .fg{fill:var(--on-accent);font:700 10px "Atkinson Hyperlegible",sans-serif}
+.chord .open{fill:none;stroke:var(--ink);stroke-width:1.6}
+.chord .mk{fill:var(--muted);font:700 13px sans-serif}
+.chord .pos{fill:var(--muted);font:700 10px sans-serif}
+
+.tips{margin:6px 0 18px;padding:0;list-style:none;border-left:3px solid var(--accent);padding-left:14px}
+.tips li{margin:4px 0;color:var(--muted)}
+
+/* Passos da sessão */
+.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:16px;margin-bottom:10px}
+.step>button.head{width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;text-align:left}
+.num{flex:0 0 32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:2px solid var(--line);color:var(--muted)}
+.step.done .num{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.head .ttl{flex:1}
+.head .ttl small{display:block;color:var(--muted);font-size:.85rem}
+.body{padding:0 16px 16px}
+.timer{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:2.6rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.row.between{justify-content:space-between}
+
+.drill{border-top:1px solid var(--line);padding:14px 0}
+.drill:first-of-type{border-top:0}
+.pair{display:flex;align-items:center;gap:6px}
+.pair .arrow{color:var(--muted);font-size:1.2rem}
+.best{font-size:.88rem;color:var(--muted)}
+.best b{color:var(--brass)}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:44px;height:44px;border-radius:50%;border:2px solid var(--line);font-size:1.3rem;font-weight:700}
+.stepper input{width:72px;height:44px;text-align:center;font:700 1.4rem "Bricolage Grotesque",sans-serif;border:2px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)}
+
+/* Metrônomo e batida */
+.metro{background:var(--bg);border-radius:14px;padding:12px;margin-top:10px}
+.pattern{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin:10px 0}
+.cell{text-align:center;border-radius:8px;padding:6px 0;background:var(--surface);border:1px solid var(--line);transition:background .06s}
+.cell b{display:block;font-size:1.3rem;line-height:1.2;min-height:1.2em}
+.cell small{color:var(--muted);font-size:.75rem}
+.cell.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.cell.on small{color:var(--on-accent)}
+.bpm{display:flex;align-items:center;gap:10px}
+.bpm button{width:40px;height:40px;border-radius:50%;border:2px solid var(--line);font-weight:700;font-size:1.2rem}
+.bpm output{font:700 1.5rem "Bricolage Grotesque",sans-serif;min-width:3ch;text-align:center;font-variant-numeric:tabular-nums}
+.prog{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.pchip{min-width:52px;padding:8px 10px;border-radius:10px;border:2px solid var(--line);text-align:center;font-weight:700;background:var(--surface)}
+.pchip.on{border-color:var(--accent);background:var(--accent-soft)}
+.play{width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center}
+.play svg{width:20px;height:20px;fill:currentColor}
+
+.finish{margin-top:18px}
+.notice{background:var(--accent-soft);border-radius:14px;padding:14px 16px;margin:14px 0}
+
+/* Trilha */
+.path{list-style:none;padding:0;margin:16px 0 0;position:relative}
+.path::before{content:"";position:absolute;left:15px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.lesson{position:relative;display:flex;gap:14px;padding:10px 0}
+.lesson .num{background:var(--bg);z-index:1}
+.lesson.done .num{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.lesson.current .num{border-color:var(--accent);color:var(--accent)}
+.lesson.locked{opacity:.5}
+.lesson .info{flex:1}
+.lesson button.open{text-align:left;width:100%}
+.meter{height:6px;background:var(--line);border-radius:3px;margin-top:6px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent)}
+
+/* Progresso */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.stat b{font:700 1.7rem "Bricolage Grotesque",sans-serif;display:block;line-height:1.1}
+.stat span{font-size:.8rem;color:var(--muted)}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:3px;margin:10px 0 4px;overflow-x:auto}
+.heat i{width:18px;height:18px;border-radius:4px;background:var(--heat0)}
+.heat i.l1{background:var(--heat1)}.heat i.l2{background:var(--heat2)}.heat i.l3{background:var(--heat3)}
+.heat i.today{outline:2px solid var(--brass);outline-offset:-2px}
+.rec{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.spark{width:110px;height:32px}
+.spark polyline{fill:none;stroke:var(--accent);stroke-width:2}
+.spark line{stroke:var(--brass);stroke-dasharray:3 3}
+section{margin-top:26px}
+
+/* Ferramentas */
+.strings{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:10px}
+.strings button{min-height:64px;border-radius:12px;border:2px solid var(--line);background:var(--surface);font-weight:700}
+.strings button small{display:block;font-weight:400;color:var(--muted);font-size:.72rem}
+select{font:inherit;color:var(--ink);background:var(--surface);border:2px solid var(--line);border-radius:10px;padding:8px 10px;width:100%}
+
+/* Navegação inferior */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:20}
+nav.tabs .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 0 8px;color:var(--muted);text-decoration:none;font-size:.78rem}
+nav.tabs a svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs a[aria-current="page"]{color:var(--accent);font-weight:700}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<nav class="tabs" aria-label="Seções">
+  <div class="in">
+    <a href="#hoje" data-v="hoje"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Hoje</a>
+    <a href="#trilha" data-v="trilha"><svg viewBox="0 0 24 24"><path d="M5 19c3-1 3-5 7-6s4-5 7-7"/><circle cx="5" cy="19" r="1.6"/><circle cx="19" cy="6" r="1.6"/></svg>Trilha</a>
+    <a href="#ferramentas" data-v="ferramentas"><svg viewBox="0 0 24 24"><path d="M8 21h8l-2-17h-4z"/><path d="M12 14l4-6"/></svg>Ferramentas</a>
+    <a href="#progresso" data-v="progresso"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Progresso</a>
+  </div>
+</nav>
+<script>
+(function(){
+'use strict';
+/* ---------- Dados ---------- */
+const CH={
+ Em:{f:[0,2,2,0,0,0],g:[0,2,3,0,0,0]},
+ Am:{f:['x',0,2,2,1,0],g:[0,0,2,3,1,0]},
+ D:{f:['x','x',0,2,3,2],g:[0,0,0,1,3,2]},
+ G:{f:[3,2,0,0,0,3],g:[2,1,0,0,0,3]},
+ C:{f:['x',3,2,0,1,0],g:[0,3,2,0,1,0]},
+ A:{f:['x',0,2,2,2,0],g:[0,0,1,2,3,0]},
+ E:{f:[0,2,2,1,0,0],g:[0,2,3,1,0,0]},
+ Dm:{f:['x','x',0,2,3,1],g:[0,0,0,2,3,1]},
+ A7:{f:['x',0,2,0,2,0],g:[0,0,2,0,3,0]},
+ E7:{f:[0,2,0,1,0,0],g:[0,2,0,1,0,0]},
+ Fmaj7:{f:['x','x',3,2,1,0],g:[0,0,3,2,1,0]},
+ F:{f:[1,3,3,2,1,1],g:[1,3,4,2,1,1],barre:{fret:1,from:0,to:5}},
+ Bm:{f:['x',2,4,4,3,2],g:[0,1,3,4,2,1],barre:{fret:2,from:1,to:5}}
+};
+const PAT={
+ q:{name:'Semínimas: ↓ em cada tempo',s:['↓','','↓','','↓','','↓','']},
+ e:{name:'Colcheias: ↓↑ alternado',s:['↓','↑','↓','↑','↓','↑','↓','↑']},
+ pop:{name:'Batida pop',s:['↓','','↓','↑','','↑','↓','↑']},
+ balada:{name:'Batida balada',s:['↓','','↓','↑','↓','','↓','↑']},
+ pima:{name:'Dedilhado p-i-m-a',s:['p','i','m','a','p','i','m','a']}
+};
+const COUNT=['1','e','2','e','3','e','4','e'];
+const L=[
+ {id:'l1',t:'Postura e o primeiro acorde',chords:['Em'],drills:[['Em','Em']],target:20,pat:'q',bpm:60,prog:['Em','Em','Em','Em'],tips:['Violão apoiado na perna, braço levemente inclinado para cima.','Pressione logo atrás do traste, com a ponta dos dedos e unhas curtas.','Toque corda por corda: se alguma soar abafada, ajuste antes de seguir.']},
+ {id:'l2',t:'Mi menor e Lá menor',chords:['Em','Am'],drills:[['Em','Am']],target:25,pat:'q',bpm:60,prog:['Em','Am','Em','Am'],tips:['O formato é quase o mesmo: os dedos 2 e 3 só descem uma corda.','Mova os dedos juntos, como um bloco, em vez de um por vez.']},
+ {id:'l3',t:'Ré maior',chords:['D','Am','Em'],drills:[['Am','D'],['Em','D']],target:25,pat:'e',bpm:60,prog:['Em','D','Am','Em'],tips:['No Ré, toque só as quatro cordas mais finas.','Mão direita sempre em movimento: para baixo no tempo, para cima no “e”.']},
+ {id:'l4',t:'Sol maior',chords:['G','D','Em'],drills:[['G','D'],['G','Em']],target:25,pat:'e',bpm:65,prog:['G','Em','D','G'],tips:['Polegar atrás do braço, mais ou menos na altura do dedo 2.','Olhe para o próximo acorde antes de trocar: a mão segue o olhar.']},
+ {id:'l5',t:'Dó maior',chords:['C','G','Am'],drills:[['C','G'],['C','Am']],target:30,pat:'pop',bpm:65,prog:['C','G','Am','G'],tips:['De Dó para Lá menor só o dedo 3 se move; os outros ficam.','Na batida pop, o espaço vazio é um movimento no ar: a mão passa sem tocar as cordas.']},
+ {id:'l6',t:'Lá maior e Mi maior',chords:['A','E','D'],drills:[['A','D'],['E','A']],target:30,pat:'pop',bpm:70,prog:['A','D','E','A'],tips:['No Lá, os três dedos ficam lado a lado na casa 2, bem perto do traste.','Mi maior é o Mi menor com o dedo 1 na terceira corda.']},
+ {id:'l7',t:'A progressão mais tocada',chords:['G','D','Em','C'],drills:[['Em','C'],['D','Em']],target:35,pat:'pop',bpm:75,prog:['G','D','Em','C'],tips:['Sol, Ré, Mi menor e Dó sustentam centenas de músicas pop.','Solte o acorde no último “e” do compasso para chegar a tempo no próximo.']},
+ {id:'l8',t:'Ré menor e acordes com sétima',chords:['Dm','A7','E7'],drills:[['Dm','A7'],['Am','E7']],target:30,pat:'balada',bpm:70,prog:['Am','Dm','E7','Am'],tips:['O E7 cria tensão e pede para resolver no Lá menor.','Acentue levemente o primeiro tempo de cada compasso.']},
+ {id:'l9',t:'Dedilhado p-i-m-a',chords:['C','Am','Em','G'],drills:[['Am','C'],['G','Em']],target:35,pat:'pima',bpm:60,prog:['C','Am','Em','G'],tips:['p (polegar) toca o baixo; i, m e a tocam a 3ª, 2ª e 1ª cordas.','O baixo muda com o acorde: 5ª corda em Dó e Lá menor, 6ª em Mi menor e Sol.']},
+ {id:'l10',t:'Fá com sétima maior',chords:['Fmaj7','C','G'],drills:[['C','Fmaj7'],['Fmaj7','G']],target:30,pat:'balada',bpm:70,prog:['C','Fmaj7','G','C'],tips:['O Fmaj7 prepara a mão para o Fá com pestana: mesmo desenho, sem a pestana.','De Dó para Fmaj7, os dedos 3 e 2 sobem uma corda juntos.']},
+ {id:'l11',t:'Pestana: Fá e Si menor',chords:['F','Bm'],drills:[['C','F'],['Bm','G']],target:20,pat:'pop',bpm:70,prog:['C','F','G','C','G','Bm','C','D'],tips:['Use o lado ósseo do dedo 1, levemente girado, e puxe com o braço, não só com o polegar.','Pestana leva semanas. Se o punho doer, pare e descanse.']},
+ {id:'l12',t:'Pentatônica de Lá menor',chords:[],scale:true,drills:[['penta','penta']],target:6,pat:'e',bpm:60,prog:['Am','Am','Dm','Dm'],tips:['Uma nota por colcheia, da 6ª à 1ª corda e de volta.','Um dedo por casa: indicador na 5, anelar na 7, mínimo na 8.']}
+];
+const NEED=3; /* dias de prática por lição */
+const MAXD=6;
+
+/* ---------- Estado ---------- */
+const KEY='violao-diario-v1';
+function blank(){return {v:1,active:null,lessons:{},rec:{},days:{},bpm:{},updatedAt:0}}
+let S=blank();
+try{const raw=localStorage.getItem(KEY); if(raw){S=Object.assign(blank(),JSON.parse(raw));}}catch(e){}
+let DB=null,UID=null,syncMsg='Salvo neste aparelho.',pushT=null;
+function localSave(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function save(){S.updatedAt=Date.now();localSave();if(DB){clearTimeout(pushT);pushT=setTimeout(pushRemote,800);}}
+async function pushRemote(){if(!DB||!UID)return;try{await DB.doc('data/users/'+UID+'/progress').set({state:JSON.stringify(S),updatedAt:S.updatedAt});syncMsg='Sincronizado com sua conta Claude.';}catch(e){syncMsg='Salvo neste aparelho (sincronização indisponível agora).';}}
+
+/* ---------- Utilidades ---------- */
+function dkey(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const today=()=>dkey();
+function ls(id){return S.lessons[id]||{sessions:0,mastered:false,lastDay:null};}
+function dkeyOf(d){return d[0]+'-'+d[1];}
+function dlabel(d){if(d[0]==='penta')return 'Subir e descer a pentatônica';if(d[0]===d[1])return 'Montar e soltar '+d[0];return d[0]+' ⇄ '+d[1];}
+function unit(Ls){return Ls.scale?'passadas/min':'trocas/min';}
+function best(k){const r=S.rec[k]||[];return r.reduce((m,x)=>Math.max(m,x.n),0);}
+function targetsMet(Ls){return Ls.drills.every(d=>best(dkeyOf(d))>=Ls.target);}
+function isDone(Ls){const s=ls(Ls.id);return s.mastered||(s.sessions>=NEED&&targetsMet(Ls))||s.sessions>=MAXD;}
+function unlocked(i){return i===0||isDone(L[i-1]);}
+function activeIdx(){
+ const a=L.findIndex(x=>x.id===S.active);
+ if(a>=0&&unlocked(a))return a;
+ const f=L.findIndex(x=>!isDone(x));return f<0?L.length-1:f;
+}
+function streak(){
+ let d=new Date(),n=0;
+ if(!S.days[dkey(d)])d.setDate(d.getDate()-1);
+ while(S.days[dkey(d)]){n++;d.setDate(d.getDate()-1);}
+ return n;
+}
+const fmt=s=>{s=Math.ceil(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- Diagramas ---------- */
+function chordSVG(n,sm){
+ const c=CH[n];if(!c)return '';
+ const X=i=>18+i*17,Y=f=>28+f*26;
+ let s='<svg viewBox="0 0 120 140" class="chord'+(sm?' sm':'')+'" role="img" aria-label="Acorde '+n+'">';
+ for(let f=0;f<=4;f++)s+='<line x1="18" x2="103" y1="'+Y(f)+'" y2="'+Y(f)+'" class="'+(f?'fret':'nut')+'"/>';
+ for(let i=0;i<6;i++)s+='<line x1="'+X(i)+'" x2="'+X(i)+'" y1="'+Y(0)+'" y2="'+Y(4)+'" class="str" style="stroke-width:'+(2.2-i*0.28)+'"/>';
+ if(c.barre){const b=c.barre;s+='<rect x="'+(X(b.from)-8)+'" y="'+(Y(b.fret-.5)-8)+'" width="'+(X(b.to)-X(b.from)+16)+'" height="16" rx="8" class="dot"/><text x="'+X(b.from)+'" y="'+(Y(b.fret-.5)+3.6)+'" text-anchor="middle" class="fg">1</text>';}
+ c.f.forEach((v,i)=>{
+  if(v==='x')s+='<text x="'+X(i)+'" y="19" text-anchor="middle" class="mk">×</text>';
+  else if(v===0)s+='<circle cx="'+X(i)+'" cy="14" r="4.4" class="open"/>';
+  else{const onB=c.barre&&v===c.barre.fret&&i>=c.barre.from&&i<=c.barre.to;
+   if(!onB)s+='<circle cx="'+X(i)+'" cy="'+Y(v-.5)+'" r="7.5" class="dot"/><text x="'+X(i)+'" y="'+(Y(v-.5)+3.6)+'" text-anchor="middle" class="fg">'+(c.g[i]||'')+'</text>';}
+ });
+ return s+'</svg>';
+}
+function pentaSVG(sm){
+ const X=i=>24+i*16,Y=f=>16+f*28;
+ const pos=[[5,8],[5,7],[5,7],[5,7],[5,8],[5,8]],root={'0-5':1,'2-7':1,'5-5':1};
+ const fing={5:1,7:3,8:4};
+ let s='<svg viewBox="0 0 120 140" class="chord'+(sm?' sm':'')+'" role="img" aria-label="Escala pentatônica de Lá menor na 5ª casa">';
+ for(let f=0;f<=4;f++)s+='<line x1="24" x2="104" y1="'+Y(f)+'" y2="'+Y(f)+'" class="fret"/>';
+ for(let i=0;i<6;i++)s+='<line x1="'+X(i)+'" x2="'+X(i)+'" y1="'+Y(0)+'" y2="'+Y(4)+'" class="str" style="stroke-width:'+(2.2-i*0.28)+'"/>';
+ s+='<text x="10" y="'+(Y(.5)+4)+'" text-anchor="middle" class="pos">5</text>';
+ pos.forEach((p,i)=>p.forEach(fr=>{const y=Y(fr-4.5);s+='<circle cx="'+X(i)+'" cy="'+y+'" r="7.5" class="'+(root[i+'-'+fr]?'root':'dot')+'"/><text x="'+X(i)+'" y="'+(y+3.6)+'" text-anchor="middle" class="fg">'+fing[fr]+'</text>';}));
+ return s+'</svg>';
+}
+const diag=(n,sm)=>n==='penta'?pentaSVG(sm):chordSVG(n,sm);
+
+/* ---------- Áudio ---------- */
+let AC=null;
+function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC;}
+function tone(freq,t,dur,vol,type){const a=ac(),o=a.createOscillator(),g=a.createGain();o.type=type||'sine';o.frequency.value=freq;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+0.003);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+dur+0.02);}
+function click(t,acc){tone(acc?1650:1050,t,0.05,acc?0.55:0.3,'square');}
+function startBeep(){const t=ac().currentTime+0.02;tone(880,t,0.15,0.4);}
+function endBeep(){const t=ac().currentTime+0.02;tone(660,t,0.18,0.45);tone(990,t+0.22,0.3,0.45);}
+function pluck(freq){
+ const a=ac(),sr=a.sampleRate,len=Math.floor(sr*3),buf=a.createBuffer(1,len,sr),d=buf.getChannelData(0);
+ const N=Math.max(2,Math.round(sr/freq)),ring=new Float32Array(N);
+ for(let i=0;i<N;i++)ring[i]=Math.random()*2-1;
+ let p=0;for(let i=0;i<len;i++){const nx=(p+1)%N,v=ring[p];d[i]=v;ring[p]=0.4985*(v+ring[nx]);p=nx;}
+ const s=a.createBufferSource(),g=a.createGain();s.buffer=buf;g.gain.value=0.6;s.connect(g);g.connect(a.destination);s.start();
+}
+
+/* ---------- Metrônomo ---------- */
+const M={running:false,bpm:60,tick:0,next:0,iv:null,q:[],block:null,progLen:0};
+function sched(){while(M.next<AC.currentTime+0.12){if(M.tick%2===0)click(M.next,M.tick%8===0);M.q.push({t:M.next,tick:M.tick});M.next+=60/M.bpm/2;M.tick++;}}
+function drawM(){if(!M.running)return;const now=AC.currentTime;let cur=null;while(M.q.length&&M.q[0].t<=now)cur=M.q.shift();if(cur)hl(cur.tick);requestAnimationFrame(drawM);}
+function clearHl(){document.querySelectorAll('.cell.on,.pchip.on').forEach(x=>x.classList.remove('on'));}
+function hl(tick){clearHl();const c=document.getElementById(M.block+'-c'+(tick%8));if(c)c.classList.add('on');if(M.progLen){const p=document.getElementById(M.block+'-p'+(Math.floor(tick/8)%M.progLen));if(p)p.classList.add('on');}}
+function mStart(block,bpm,progLen){mStop();const a=ac();Object.assign(M,{running:true,bpm:bpm,block:block,progLen:progLen,tick:0,next:a.currentTime+0.1,q:[]});M.iv=setInterval(sched,25);sched();requestAnimationFrame(drawM);syncPlay();}
+function mStop(){M.running=false;clearInterval(M.iv);M.q=[];clearHl();syncPlay();}
+const PLAY='<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',STOP='<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+function syncPlay(){document.querySelectorAll('[data-act="play"]').forEach(b=>{const on=M.running&&M.block===b.dataset.block;b.innerHTML=on?STOP:PLAY;b.setAttribute('aria-label',on?'Parar metrônomo':'Iniciar metrônomo');});}
+function metroBlock(id,bpmKey,defBpm,patKey,prog){
+ const bpm=S.bpm[bpmKey]||defBpm,P=PAT[patKey];
+ let h='<div class="metro"><div class="row between"><div><b>'+P.name+'</b></div></div><div class="pattern" aria-hidden="true">';
+ P.s.forEach((x,i)=>{h+='<div class="cell" id="'+id+'-c'+i+'"><b>'+(x||'·')+'</b><small>'+COUNT[i]+'</small></div>';});
+ h+='</div>';
+ if(prog){h+='<div class="prog">';prog.forEach((c,i)=>{h+='<span class="pchip" id="'+id+'-p'+i+'">'+c+'</span>';});h+='</div>';}
+ h+='<div class="row between"><div class="bpm"><button data-act="bpm" data-d="-5" data-key="'+bpmKey+'" data-def="'+defBpm+'" data-block="'+id+'" aria-label="Diminuir andamento">−</button><output id="'+id+'-bpm">'+bpm+'</output><span class="muted small">bpm</span><button data-act="bpm" data-d="5" data-key="'+bpmKey+'" data-def="'+defBpm+'" data-block="'+id+'" aria-label="Aumentar andamento">+</button></div>';
+ h+='<button class="play" data-act="play" data-block="'+id+'" data-key="'+bpmKey+'" data-def="'+defBpm+'" data-prog="'+(prog?prog.length:0)+'" aria-label="Iniciar metrônomo">'+PLAY+'</button></div></div>';
+ return h;
+}
+
+/* ---------- Cronômetro ---------- */
+const T={id:null,end:0,left:0,running:false,iv:null};
+function tStart(id,secs){
+ if(T.id!==id){tReset();T.id=id;T.left=secs;}
+ T.end=Date.now()+T.left*1000;T.running=true;clearInterval(T.iv);T.iv=setInterval(tTick,200);startBeep();tDraw();
+}
+function tPause(){T.left=Math.max(0,(T.end-Date.now())/1000);T.running=false;clearInterval(T.iv);tDraw();}
+function tReset(){clearInterval(T.iv);const old=T.id;T.id=null;T.running=false;if(old)render();}
+function tTick(){T.left=Math.max(0,(T.end-Date.now())/1000);tDraw();if(T.left<=0){clearInterval(T.iv);T.running=false;const id=T.id;T.id=null;endBeep();timerEnd(id);}}
+function tDraw(){if(!T.id)return;const el=document.getElementById('t-'+T.id);if(el)el.textContent=fmt(T.left);const b=document.querySelector('[data-act="timer"][data-id="'+T.id+'"]');if(b)b.textContent=T.running?'Pausar':'Continuar';}
+function timerView(id,secs,label){
+ const active=T.id===id,left=active?T.left:secs;
+ return '<div class="row between"><div class="timer" id="t-'+id+'">'+fmt(left)+'</div><button class="btn" data-act="timer" data-id="'+id+'" data-secs="'+secs+'">'+(active?(T.running?'Pausar':'Continuar'):label)+'</button></div>';
+}
+
+/* ---------- Sessão do dia ---------- */
+let SS=null;
+function session(Ls){if(!SS||SS.lesson!==Ls.id||SS.day!==today())SS={lesson:Ls.id,day:today(),done:{},open:'warm',counting:null,count:{},finished:false};return SS;}
+function timerEnd(id){
+ const Ls=L[activeIdx()],ss=session(Ls);
+ if(id.startsWith('drill-')){const k=id.slice(6);ss.counting=k;const r=S.rec[k]||[];ss.count[k]=r.length?r[r.length-1].n:Ls.target;}
+ else{ss.done[id]=true;ss.open=nextOpen(Ls,ss);if(M.running)mStop();}
+ render();
+}
+function nextOpen(Ls,ss){const order=['warm','drill','rhythm','prog'];return order.find(k=>!ss.done[k])||null;}
+function stepMin(Ls,k){return {warm:2,drill:Ls.drills.length,rhythm:3,prog:4}[k];}
+
+function viewHoje(){
+ const i=activeIdx(),Ls=L[i],ss=session(Ls),st=ls(Ls.id),k=streak();
+ const date=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
+ let h='<div class="day"><div><div class="date">'+date+'</div><div class="muted small">Lição '+(i+1)+' de '+L.length+'</div></div><div class="streak"><b>'+k+'</b><span>'+(k===1?'dia seguido':'dias seguidos')+'</span></div></div>';
+ h+='<h1 class="lesson-name">'+esc(Ls.t)+'</h1>';
+ const figs=Ls.scale?['penta']:Ls.chords;
+ h+='<div class="board">'+figs.map(c=>'<figure>'+diag(c)+'<figcaption>'+(c==='penta'?'Lá menor pentatônica':c)+'</figcaption></figure>').join('')+'</div>';
+ h+='<ul class="tips">'+Ls.tips.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>';
+ if(S.days[today()]&&ss.finished){
+  h+='<div class="notice"><h3>Sessão registrada</h3><p>'+(isDone(Ls)&&i<L.length-1?'Lição concluída. A próxima já está liberada na trilha.':'Volte amanhã para manter a sequência. Faltam '+Math.max(0,NEED-st.sessions)+' dia(s) de prática e a meta de '+Ls.target+' '+unit(Ls)+' em cada exercício.')+'</p></div>';
+ }
+ const steps=[
+  ['warm','Aquecimento','2 min · exercício 1-2-3-4'],
+  ['drill',Ls.scale?'Escala em 1 minuto':'Trocas de 1 minuto','Meta: '+Ls.target+' '+unit(Ls)],
+  ['rhythm','Ritmo','3 min · '+PAT[Ls.pat].name],
+  ['prog','Aplicação','4 min · '+Ls.prog.join(' – ')]
+ ];
+ h+='<ol class="steps">';
+ steps.forEach((s,n)=>{
+  const done=!!ss.done[s[0]],open=ss.open===s[0];
+  h+='<li class="step'+(done?' done':'')+'"><button class="head" data-act="open" data-k="'+s[0]+'" aria-expanded="'+open+'"><span class="num">'+(done?'✓':n+1)+'</span><span class="ttl"><b>'+s[1]+'</b><small>'+esc(s[2])+'</small></span></button>';
+  if(open)h+='<div class="body">'+stepBody(s[0],Ls,ss)+'</div>';
+  h+='</li>';
+ });
+ h+='</ol>';
+ const any=Object.keys(ss.done).some(x=>ss.done[x]);
+ const mins=['warm','drill','rhythm','prog'].filter(x=>ss.done[x]).reduce((a,x)=>a+stepMin(Ls,x),0);
+ if(!ss.finished)h+='<div class="finish"><button class="btn wide" data-act="finish" '+(any?'':'disabled')+'>Registrar sessão'+(mins?' ('+mins+' min)':'')+'</button><p class="muted small">Complete as etapas na ordem. Dá para registrar mesmo sem terminar todas.</p></div>';
+ return h;
+}
+function stepBody(k,Ls,ss){
+ if(k==='warm'){
+  return '<p>Um dedo por casa, da casa 1 à 4, em cada corda da 6ª à 1ª e de volta. Devagar, com cada nota soando limpa.</p>'+timerView('warm',120,'Começar')+'<p><button class="btn ghost" data-act="skip" data-k="warm">Marcar como feito</button></p>';
+ }
+ if(k==='drill'){
+  let h='<p class="muted small">'+(Ls.scale?'Conte quantas vezes sobe e desce a escala inteira em 1 minuto, sem pressa.':'Conte cada troca completa em 1 minuto, tocando o acorde uma vez ao chegar nele. Precisão antes de velocidade.')+'</p>';
+  Ls.drills.forEach(d=>{
+   const key=dkeyOf(d),b=best(key),did=ss.done['d:'+key];
+   h+='<div class="drill"><div class="row between"><div class="pair">'+diag(d[0],true)+(d[0]!==d[1]?'<span class="arrow">⇄</span>'+diag(d[1],true):'')+'</div><div class="best">Recorde <b>'+b+'</b> / meta '+Ls.target+'</div></div><p><b>'+esc(dlabel(d))+'</b>'+(did?' <span class="muted">· feito hoje</span>':'')+'</p>';
+   if(ss.counting===key){
+    h+='<p>Quantas '+(Ls.scale?'passadas':'trocas')+' você fez?</p><div class="row between"><div class="stepper"><button data-act="cnt" data-d="-1" aria-label="Menos um">−</button><input type="number" inputmode="numeric" min="0" max="200" id="cnt" value="'+ss.count[key]+'" aria-label="Quantidade"><button data-act="cnt" data-d="1" aria-label="Mais um">+</button></div><button class="btn" data-act="savecnt" data-key="'+key+'">Salvar</button></div>';
+   } else h+=timerView('drill-'+key,60,did?'Repetir':'Começar 1 min');
+   h+='</div>';
+  });
+  return h;
+ }
+ if(k==='rhythm'){
+  const what=Ls.scale?'a escala, uma nota por colcheia':(Ls.chords[0]+' parado, só a mão direita');
+  return '<p>Toque '+what+' acompanhando o metrônomo. O destaque mostra onde a mão está em cada momento.</p>'+metroBlock('rh',Ls.id+':rh',Ls.bpm,Ls.pat,null)+'<div style="margin-top:12px">'+timerView('rhythm',180,'Começar 3 min')+'</div>';
+ }
+ if(k==='prog'){
+  return '<p>Um acorde por compasso (4 tempos). Quando passar 3 vezes seguidas sem parar, suba 5 bpm.'+(Ls.scale?' Depois de tocar, improvise com a pentatônica por cima da sequência gravada no celular.':'')+'</p>'+metroBlock('pg',Ls.id+':pg',Ls.bpm,Ls.pat,Ls.prog)+'<div style="margin-top:12px">'+timerView('prog',240,'Começar 4 min')+'</div>';
+ }
+ return '';
+}
+
+/* ---------- Trilha ---------- */
+function viewTrilha(){
+ const ai=activeIdx();
+ let h='<h1>Trilha</h1><p class="muted">Cada lição pede '+NEED+' dias de prática e a meta de trocas por minuto. A seguinte é liberada quando você chega lá.</p><ol class="path">';
+ L.forEach((Ls,i)=>{
+  const st=ls(Ls.id),done=isDone(Ls),open=unlocked(i),cur=i===ai;
+  const pct=Math.min(100,Math.round((Math.min(st.sessions,NEED)/NEED*50)+(Ls.drills.reduce((a,d)=>a+Math.min(1,best(dkeyOf(d))/Ls.target),0)/Ls.drills.length*50)));
+  h+='<li class="lesson'+(done?' done':'')+(cur?' current':'')+(open?'':' locked')+'"><span class="num">'+(done?'✓':i+1)+'</span><div class="info">';
+  const inner='<b>'+esc(Ls.t)+'</b><div class="muted small">'+(Ls.scale?'Escala na 5ª casa':Ls.chords.join(', '))+' · '+PAT[Ls.pat].name+'</div>'+(open&&!done?'<div class="meter" aria-label="Progresso '+pct+'%"><i style="width:'+pct+'%"></i></div><div class="muted small">'+st.sessions+'/'+NEED+' dias · meta '+Ls.target+' '+unit(Ls)+'</div>':'');
+  h+=open?'<button class="open" data-act="pick" data-i="'+i+'">'+inner+'</button>':inner;
+  if(cur&&!done)h+='<p><button class="btn ghost" data-act="master" data-i="'+i+'">Já domino esta lição</button></p>';
+  h+='</div></li>';
+ });
+ return h+'</ol>';
+}
+
+/* ---------- Ferramentas ---------- */
+const STR=[['E','6ª',82.41],['A','5ª',110],['D','4ª',146.83],['G','3ª',196],['B','2ª',246.94],['E','1ª',329.63]];
+let toolPat='pop';
+function viewFerr(){
+ let h='<h1>Ferramentas</h1><section><h2>Afinação de referência</h2><p class="muted small">Toque a nota e ajuste a tarraxa até a corda soar igual. Afinação padrão Mi-Lá-Ré-Sol-Si-Mi.</p><div class="strings">';
+ STR.forEach((s,i)=>{h+='<button data-act="pluck" data-i="'+i+'" aria-label="Tocar '+s[1]+' corda, '+s[0]+'">'+s[0]+'<small>'+s[1]+'</small></button>';});
+ h+='</div></section><section><h2>Metrônomo livre</h2><p><label class="small muted" for="patsel">Padrão</label><select id="patsel" data-act="pat">'+Object.keys(PAT).map(k=>'<option value="'+k+'"'+(k===toolPat?' selected':'')+'>'+PAT[k].name+'</option>').join('')+'</select></p>'+metroBlock('tl','tools',70,toolPat,null)+'</section>';
+ return h;
+}
+
+/* ---------- Progresso ---------- */
+function viewProg(){
+ const days=Object.keys(S.days),mins=days.reduce((a,d)=>a+S.days[d],0);
+ let h='<h1>Progresso</h1><div class="stats"><div class="stat"><b>'+streak()+'</b><span>dias seguidos</span></div><div class="stat"><b>'+days.length+'</b><span>dias praticados</span></div><div class="stat"><b>'+mins+'</b><span>minutos no total</span></div></div>';
+ h+='<section><h2>Últimas 12 semanas</h2><div class="heat" role="img" aria-label="Mapa de dias praticados">';
+ const now=new Date(),start=new Date(now);start.setDate(now.getDate()-(77+now.getDay()));
+ for(let n=0;n<84;n++){const d=new Date(start);d.setDate(start.getDate()+n);if(d>now){h+='<i style="visibility:hidden"></i>';continue;}const k=dkey(d),m=S.days[k]||0;h+='<i class="'+(m?(m<8?'l1':m<14?'l2':'l3'):'')+(k===today()?' today':'')+'" title="'+k+': '+m+' min"></i>';}
+ h+='</div><p class="muted small">Cada coluna é uma semana, de domingo a sábado.</p></section>';
+ h+='<section><h2>Recordes por exercício</h2>';
+ let any=false;
+ L.forEach((Ls,i)=>{if(!unlocked(i))return;Ls.drills.forEach(d=>{const k=dkeyOf(d),r=(S.rec[k]||[]).slice(-12);if(!r.length)return;any=true;
+  const mx=Math.max(Ls.target,...r.map(x=>x.n))*1.1;const pts=r.map((x,j)=>((r.length===1?55:j/(r.length-1)*106+2).toFixed(1))+','+(30-x.n/mx*28).toFixed(1)).join(' ');
+  h+='<div class="rec"><div><b>'+esc(dlabel(d))+'</b><div class="muted small">Recorde '+best(k)+' · meta '+Ls.target+'</div></div><svg class="spark" viewBox="0 0 110 32" aria-hidden="true"><line x1="0" x2="110" y1="'+(30-Ls.target/mx*28).toFixed(1)+'" y2="'+(30-Ls.target/mx*28).toFixed(1)+'"/><polyline points="'+pts+'"/></svg></div>';});});
+ if(!any)h+='<p class="muted">Faça seu primeiro exercício de 1 minuto em Hoje para ver a evolução aqui.</p>';
+ h+='</section><section><p class="muted small">'+syncMsg+'</p><button class="btn ghost" data-act="reset">Apagar todo o progresso</button></section>';
+ return h;
+}
+
+/* ---------- Render e eventos ---------- */
+const VIEWS={hoje:viewHoje,trilha:viewTrilha,ferramentas:viewFerr,progresso:viewProg};
+function view(){const v=location.hash.replace('#','');return VIEWS[v]?v:'hoje';}
+let lastView=null;
+function render(){
+ const v=view();
+ if(lastView&&lastView!==v){if(M.running)mStop();if(T.id&&T.running)tPause();}
+ document.getElementById('app').innerHTML=VIEWS[v]();
+ document.querySelectorAll('nav.tabs a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+ if(lastView!==v)window.scrollTo(0,0);
+ lastView=v;syncPlay();tDraw();
+}
+window.addEventListener('hashchange',render);
+
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-act]');if(!b||b.tagName==='SELECT')return;
+ const a=b.dataset.act,Ls=L[activeIdx()];
+ if(a==='open'){const ss=session(Ls);ss.open=ss.open===b.dataset.k?null:b.dataset.k;if(M.running)mStop();render();}
+ else if(a==='timer'){const id=b.dataset.id;if(T.id===id&&T.running)tPause();else{if(T.id&&T.id!==id)tReset();tStart(id,+b.dataset.secs);}}
+ else if(a==='skip'){const ss=session(Ls);ss.done[b.dataset.k]=true;ss.open=nextOpen(Ls,ss);render();}
+ else if(a==='cnt'){const inp=document.getElementById('cnt');inp.value=Math.max(0,Math.min(200,(+inp.value||0)+(+b.dataset.d)));}
+ else if(a==='savecnt'){
+  const ss=session(Ls),k=b.dataset.key,n=Math.max(0,Math.min(200,parseInt(document.getElementById('cnt').value,10)||0));
+  const r=S.rec[k]||(S.rec[k]=[]),t=today(),last=r[r.length-1];
+  if(last&&last.d===t)last.n=Math.max(last.n,n);else r.push({d:t,n:n});
+  if(r.length>60)r.splice(0,r.length-60);
+  ss.done['d:'+k]=true;ss.counting=null;
+  if(Ls.drills.every(d=>ss.done['d:'+dkeyOf(d)])){ss.done.drill=true;ss.open=nextOpen(Ls,ss);}
+  save();render();
+ }
+ else if(a==='bpm'){
+  const key=b.dataset.key,v=Math.max(40,Math.min(200,(S.bpm[key]||+b.dataset.def)+(+b.dataset.d)));
+  S.bpm[key]=v;save();const o=document.getElementById(b.dataset.block+'-bpm');if(o)o.textContent=v;
+  if(M.running&&M.block===b.dataset.block)M.bpm=v;
+ }
+ else if(a==='play'){
+  if(M.running&&M.block===b.dataset.block)mStop();
+  else mStart(b.dataset.block,S.bpm[b.dataset.key]||+b.dataset.def,+b.dataset.prog);
+ }
+ else if(a==='finish'){
+  const ss=session(Ls),t=today(),st=Object.assign({},ls(Ls.id));
+  const mins=['warm','drill','rhythm','prog'].filter(x=>ss.done[x]).reduce((s,x)=>s+stepMin(Ls,x),0)||1;
+  S.days[t]=(S.days[t]||0)+mins;
+  if(st.lastDay!==t){st.sessions++;st.lastDay=t;}
+  S.lessons[Ls.id]=st;ss.finished=true;if(M.running)mStop();save();render();window.scrollTo({top:0,behavior:'smooth'});
+ }
+ else if(a==='pick'){S.active=L[+b.dataset.i].id;save();if(M.running)mStop();location.hash='#hoje';render();}
+ else if(a==='master'){const id=L[+b.dataset.i].id,st=Object.assign({},ls(id));st.mastered=true;S.lessons[id]=st;S.active=null;save();render();}
+ else if(a==='pluck'){pluck(STR[+b.dataset.i][2]);}
+ else if(a==='reset'){if(confirm('Apagar recordes, sequência e lições concluídas? Não dá para desfazer.')){S=blank();SS=null;save();render();}}
+});
+document.addEventListener('change',e=>{if(e.target.id==='patsel'){toolPat=e.target.value;if(M.running)mStop();render();}});
+
+/* ---------- Offline ---------- */
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+
+render();
+})();
+</script>
+</body>
+</html>
